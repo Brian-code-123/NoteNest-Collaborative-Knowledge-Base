@@ -124,8 +124,6 @@ Detailed documentation is available in the /docs folder:
 
 [Roles-Access](roles-access.md) – Role-based access control
 
-[FAQ](faq.md) – Common questions
-
 ---
 
 ### Security
