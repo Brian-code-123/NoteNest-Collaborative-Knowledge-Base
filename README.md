@@ -184,6 +184,80 @@ Then open a PR on GitHub with a clear description of your changes.
 
 ---
 
+## 📝 What Makes a Good Note?
+
+A well-written note is clear, structured, and useful to others. Follow these principles when contributing notes to NoteNest:
+
+### 1. Clear Purpose
+
+Every note should answer: **"Why does this exist?"**
+
+- Start with a descriptive title that tells readers what the note is about
+- Include a brief summary at the top explaining the note's purpose
+- Focus on one topic per note instead of mixing multiple unrelated ideas
+
+### 2. Structured Content
+
+Organize information logically so readers can scan and find what they need:
+
+- Use headings and subheadings to break down complex topics
+- Group related information together
+- Present steps or lists in a clear, numbered or bulleted format
+- Keep paragraphs short (2-4 sentences max)
+
+### 3. Actionable Information
+
+Good notes help people **do something** or **understand something**:
+
+- Provide specific examples instead of vague descriptions
+- Include code snippets, commands, or screenshots when relevant
+- Add links to related documentation or resources
+- Specify prerequisites or requirements upfront
+
+### 4. Consistent Formatting
+
+Follow Markdown conventions to maintain readability:
+
+- Use `code blocks` for commands, file names, and technical terms
+- Apply **bold** for emphasis on key terms
+- Use > blockquotes for important warnings or notes
+- Format links meaningfully: `[Link Text](url)` instead of raw URLs
+
+### 5. Good vs. Weak Examples
+
+**❌ Weak Note:**
+
+```
+Setup stuff
+Just install the things and run it. Ask someone if it doesn't work.
+```
+
+**✅ Good Note:**
+
+```markdown
+## Local Development Setup
+
+This guide helps you set up NoteNest on your local machine.
+
+### Prerequisites
+- Node.js v18+
+- MongoDB running locally
+
+### Steps
+1. Clone the repository
+2. Run `npm install` in both `/frontend` and `/backend`
+3. Configure `.env` file (see Environment Variables section)
+4. Start backend: `npm run dev` from `/backend`
+5. Start frontend: `npm run dev` from `/frontend`
+
+### Troubleshooting
+- If MongoDB connection fails, verify it's running: `mongod --version`
+```
+
+**The difference?** The good note is specific, structured, and actionable.
+
+---
+
 ## 🔒 Security
 
 Found a security vulnerability? Please read our [Security Policy](SECURITY.md) for responsible disclosure guidelines.
