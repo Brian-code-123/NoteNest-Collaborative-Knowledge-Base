@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useUserRole } from "@/contexts/UserRoleContext";
 
 const iconClass = "shrink-0";
 function MailIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -46,6 +47,7 @@ function Loader2Icon({ className, style }: { className?: string; style?: React.C
 }
 
 export default function LoginPage() {
+  const { login } = useUserRole();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
@@ -73,6 +75,13 @@ export default function LoginPage() {
         setIsSubmitting(false);
         return;
       }
+
+      // Determine role based on email (demo purposes)
+      let role: "admin" | "editor" | "viewer" = "editor";
+      if (email.includes("admin")) role = "admin";
+      else if (email.includes("viewer")) role = "viewer";
+
+      login(role);
       window.location.href = "/dashboard";
     } catch {
       setErrors({ general: "Something went wrong. Please try again later." });

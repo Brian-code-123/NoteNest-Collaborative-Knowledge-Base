@@ -2,6 +2,7 @@
 
 import React from "react";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
+import { useUserRole } from "@/contexts/UserRoleContext";
 
 interface HeaderProps {
   title?: string;
@@ -16,6 +17,8 @@ export default function Header({
   showSearch = false,
   action,
 }: HeaderProps) {
+  const { isAuthenticated, logout } = useUserRole();
+
   return (
     <header
       className="flex items-center gap-4 border-b px-6 py-4"
@@ -46,7 +49,21 @@ export default function Header({
           }}
         />
       )}
-      {action && <div className="shrink-0 ml-auto">{action}</div>}
+      <div className="shrink-0 ml-auto flex items-center gap-3">
+        {isAuthenticated && (
+          <button
+            onClick={logout}
+            className="btn-secondary text-sm"
+            style={{
+              fontSize: "var(--font-size-sm)",
+              padding: "var(--space-sm) var(--space-md)",
+            }}
+          >
+            Logout
+          </button>
+        )}
+        {action}
+      </div>
     </header>
   );
 }

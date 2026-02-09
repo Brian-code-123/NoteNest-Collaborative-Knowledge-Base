@@ -1,5 +1,10 @@
 import LoginPage from "./login";
+import RouteGuard from "@/components/RouteGuard";
 
 export default function Page() {
-  return <LoginPage />;
+  return (
+    <RouteGuard authOnly>
+      <LoginPage />
+    </RouteGuard>
+  );
 }
