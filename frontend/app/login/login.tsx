@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const iconClass = "shrink-0";
@@ -46,6 +47,8 @@ function Loader2Icon({ className, style }: { className?: string; style?: React.C
 }
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
@@ -61,24 +64,29 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setIsSubmitting(true);
-    setErrors({});
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (email === "error@example.com") {
-        setErrors({ general: "Invalid email or password. Please try again." });
-        setIsSubmitting(false);
-        return;
-      }
-      window.location.href = "/dashboard";
-    } catch {
-      setErrors({ general: "Something went wrong. Please try again later." });
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  setIsSubmitting(true);
+  setErrors({});
+
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    if (email === "error@example.com") {
+      setErrors({ general: "Invalid email or password. Please try again." });
       setIsSubmitting(false);
+      return;
     }
-  };
+
+    router.push("/dashboard");
+  } catch {
+    setErrors({ general: "Something went wrong. Please try again later." });
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <div
