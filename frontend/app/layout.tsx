@@ -3,7 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CommandPalette from "@/components/CommandPalette";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { UserRoleProvider } from "@/contexts/UserRoleContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { FeatureFlagProvider } from "@/contexts/FeatureFlagContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,11 +36,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <UserRoleProvider>
-          <KeyboardShortcuts />
-          <CommandPalette />
-          {children}
-        </UserRoleProvider>
+        <ErrorBoundary>
+          <WorkspaceProvider>
+            <UserRoleProvider>
+              <FeatureFlagProvider>
+                <KeyboardShortcuts />
+                <CommandPalette />
+                {children}
+              </FeatureFlagProvider>
+            </UserRoleProvider>
+          </WorkspaceProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

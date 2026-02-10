@@ -8,8 +8,9 @@ import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 import { SkeletonList } from "@/components/Skeleton";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
-const STORAGE_KEY = "notenest-notes";
+const STORAGE_KEY_PREFIX = "notenest-notes-";
 const TITLE_MAX_LENGTH = 200;
 
 interface Note {
@@ -18,10 +19,14 @@ interface Note {
   content?: string;
 }
 
-function loadNotesFromStorage(): Note[] {
+function getStorageKey(workspaceId: string): string {
+  return `${STORAGE_KEY_PREFIX}${workspaceId}`;
+}
+
+function loadNotesFromStorage(workspaceId: string): Note[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey(workspaceId));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
@@ -34,10 +39,10 @@ function loadNotesFromStorage(): Note[] {
   }
 }
 
-function saveNotesToStorage(notes: Note[]) {
+function saveNotesToStorage(workspaceId: string, notes: Note[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(notes));
   } catch {
     // ignore
   }
@@ -46,8 +51,9 @@ function saveNotesToStorage(notes: Note[]) {
 const CREATE_RESTRICTED_TITLE = "You need Editor or Admin role to create notes.";
 const DELETE_RESTRICTED_TITLE = "You need Editor or Admin role to delete notes.";
 
-export default function NotesPage() {
+export default function WorkspaceNotesPage({ workspaceId }: { workspaceId: string }) {
   const searchParams = useSearchParams();
+  const { activeWorkspace } = useWorkspace();
   const { canCreateNote, canDeleteNote, isViewer } = usePermissions();
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +72,7 @@ export default function NotesPage() {
 
   // Load notes from localStorage (or seed data) and persist on change
   useEffect(() => {
-    const stored = loadNotesFromStorage();
+    const stored = loadNotesFromStorage(workspaceId);
     const timer = setTimeout(() => {
       setNotes(
         stored.length > 0
@@ -80,13 +86,13 @@ export default function NotesPage() {
       setIsLoading(false);
     }, 600);
     return () => clearTimeout(timer);
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     if (!isLoading && notes.length >= 0) {
-      saveNotesToStorage(notes);
+      saveNotesToStorage(workspaceId, notes);
     }
-  }, [notes, isLoading]);
+  }, [notes, isLoading, workspaceId]);
 
   // Open create modal when landing from "Create Your First Note" (e.g. /notes?new=1) — only if allowed
   useEffect(() => {
@@ -110,7 +116,7 @@ export default function NotesPage() {
     setLoadError(null);
     setIsLoading(true);
     setTimeout(() => {
-      const stored = loadNotesFromStorage();
+      const stored = loadNotesFromStorage(workspaceId);
       setNotes(
         stored.length > 0
           ? stored
@@ -192,7 +198,7 @@ export default function NotesPage() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <Header
-          title="Notes"
+          title={`Notes - ${activeWorkspace.name}`}
           showSearch
           action={
             canCreateNote ? (
@@ -207,7 +213,6 @@ export default function NotesPage() {
                   padding: "var(--space-sm) var(--space-md)",
                   minHeight: "36px",
                 }}
-                aria-label="Create a new note"
               >
                 Create Note
               </button>
@@ -220,7 +225,6 @@ export default function NotesPage() {
                   color: "var(--color-text-muted)",
                 }}
                 title={CREATE_RESTRICTED_TITLE}
-                aria-label="Create note not allowed - insufficient permissions"
               >
                 Create Note
               </span>
@@ -361,7 +365,6 @@ export default function NotesPage() {
                   onClick={() => setViewingNote(note)}
                   className="flex-1 min-w-0 py-4 pr-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded-lg"
                   style={{ "--tw-ring-color": "var(--color-info)" } as React.CSSProperties}
-                  aria-label={`View note: ${note.title}`}
                 >
                   <span className="font-semibold block truncate" style={{ color: "var(--color-text-primary)", fontSize: "var(--font-size-base)" }}>
                     {note.title}
@@ -446,14 +449,14 @@ export default function NotesPage() {
               >
                 New note
               </h2>
-              <form onSubmit={handleSubmitCreate} noValidate>
+              <form onSubmit={handleSubmitCreate}>
                 <div className="mb-4">
                   <label
                     htmlFor="create-note-title-input"
                     className="block text-sm font-medium mb-2"
                     style={{ color: "var(--color-text-primary)" }}
                   >
-                    Title <span style={{ color: "var(--color-error)" }} aria-label="required">*</span>
+                    Title <span style={{ color: "var(--color-error)" }}>*</span>
                   </label>
                   <input
                     id="create-note-title-input"
@@ -466,8 +469,7 @@ export default function NotesPage() {
                     }}
                     placeholder="Note title"
                     autoFocus
-                    required
-                    className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-offset-1"
                     style={{
                       borderColor: createTitleError ? "var(--color-error)" : "var(--color-border-light)",
                       color: "var(--color-text-primary)",
@@ -475,16 +477,15 @@ export default function NotesPage() {
                     }}
                     aria-invalid={!!createTitleError}
                     aria-describedby={createTitleError ? "create-title-error" : "create-title-hint"}
-                    aria-required="true"
                   />
                   <div className="flex justify-between items-baseline mt-1">
                     {createTitleError ? (
-                      <p id="create-title-error" className="field-error" role="alert">
+                      <p id="create-title-error" className="field-error">
                         {createTitleError}
                       </p>
                     ) : (
                       <span id="create-title-hint" className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                        {createTitle.length}/{TITLE_MAX_LENGTH} characters
+                        {createTitle.length}/{TITLE_MAX_LENGTH}
                       </span>
                     )}
                   </div>
@@ -503,7 +504,7 @@ export default function NotesPage() {
                     onChange={(e) => setCreateContent(e.target.value)}
                     placeholder="Add some content…"
                     rows={4}
-                    className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+                    className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-offset-1 resize-y"
                     style={{
                       borderColor: "var(--color-border-light)",
                       color: "var(--color-text-primary)",
