@@ -8,6 +8,7 @@ import workspaceRoutes from './routes/workspaces';
 import noteRoutes from './routes/notes';
 import userRoutes from './routes/users';
 import setupSocketHandlers from './socketHandlers';
+import { requestLoggingMiddleware, getMetrics } from './middleware/logging';
 
 dotenv.config();
 
@@ -22,6 +23,9 @@ const io = new SocketIOServer(server, {
 
 app.use(cors());
 app.use(express.json());
+
+// Add request logging middleware
+app.use(requestLoggingMiddleware);
 
 // Connect to MongoDB
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/notenest";
