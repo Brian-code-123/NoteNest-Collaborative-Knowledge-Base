@@ -1003,7 +1003,8 @@ export default function Home() {
                   color: 'var(--color-gray-50)',
                   fontSize: 'var(--font-size-lg)',
                   marginBottom: 'var(--space-md)',
-                  marginLeft: 'var(--space-lg)'
+                  marginLeft: 'var(--space-lg)',
+                  marginTop: 'var(--space-lg)'
                 }}
               >
                 NoteNest
@@ -1020,11 +1021,12 @@ export default function Home() {
               </p>
             </div>
             <div>
-              <h5 
+              <h5
                 className="font-semibold"
-                style={{ 
+                style={{
                   color: 'var(--color-gray-50)',
-                  marginBottom: 'var(--space-md)'
+                  marginBottom: 'var(--space-md)',
+                  marginTop: 'var(--space-lg)'
                 }}
               >
                 Product
@@ -1042,11 +1044,12 @@ export default function Home() {
               </ul>
             </div>
             <div>
-              <h5 
+              <h5
                 className="font-semibold"
-                style={{ 
+                style={{
                   color: 'var(--color-gray-50)',
-                  marginBottom: 'var(--space-md)'
+                  marginBottom: 'var(--space-md)',
+                  marginTop: 'var(--space-lg)'
                 }}
               >
                 Company

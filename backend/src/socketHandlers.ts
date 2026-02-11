@@ -1,4 +1,5 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
+import jwt from 'jsonwebtoken';
 import Note from "./models/Note";
 import NoteVersion from "./models/NoteVersion";
 import Workspace from "./models/Workspace";

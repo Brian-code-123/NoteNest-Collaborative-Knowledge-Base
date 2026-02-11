@@ -4,11 +4,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
+import setupSocketHandlers from './socketHandlers';
 import workspaceRoutes from './routes/workspaces';
 import noteRoutes from './routes/notes';
 import userRoutes from './routes/users';
-import setupSocketHandlers from './socketHandlers';
-import { requestLoggingMiddleware, getMetrics } from './middleware/logging';
+import { requestLoggingMiddleware } from './middleware/logging';
+import { authenticateToken } from './middleware/auth';
 
 dotenv.config();
 
@@ -35,8 +36,8 @@ mongoose.connect(MONGO_URI)
 
 // Routes
 app.use('/api/users', userRoutes);
-app.use('/api/workspaces', workspaceRoutes);
-app.use('/api/notes', noteRoutes);
+app.use('/api/workspaces', authenticateToken, workspaceRoutes);
+app.use('/api/notes', authenticateToken, noteRoutes);
 
 // Socket.IO setup
 setupSocketHandlers(io);
