@@ -67,27 +67,32 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    setErrors({});
+  setIsSubmitting(true);
+  setErrors({});
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (email === "error@example.com") {
-        setErrors({ general: "Invalid email or password. Please try again." });
-        setIsSubmitting(false);
-        return;
-      }
-
-      router.push("/dashboard");
-    } catch {
-      setErrors({ general: "Something went wrong. Please try again later." });
+    if (email === "error@example.com") {
+      setErrors({ general: "Invalid email or password. Please try again." });
       setIsSubmitting(false);
     }
-  };
+
+    // Determine role based on email (demo purposes)
+    let role: "admin" | "editor" | "viewer" = "editor";
+    if (email.includes("admin")) role = "admin";
+    else if (email.includes("viewer")) role = "viewer";
+
+    login(role);
+    router.push("/dashboard");
+  } catch {
+    setErrors({ general: "Something went wrong. Please try again later." });
+    setIsSubmitting(false);
+  }
+};
 
 
   return (
