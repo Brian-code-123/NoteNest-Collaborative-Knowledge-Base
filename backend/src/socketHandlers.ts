@@ -5,6 +5,7 @@ import NoteVersion from "./models/NoteVersion";
 import Workspace from "./models/Workspace";
 import User from "./models/User";
 import { AuditService } from "./services/auditService";
+import { YjsProvider } from "./yjsProvider";
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -69,6 +70,12 @@ export default function setupSocketHandlers(io: SocketIOServer) {
       socket.to(`note-${noteId}`).emit("user-joined", { userId: socket.userId, name: user?.name });
 
       console.log(`User ${socket.userId} joined note ${noteId}`);
+    });
+
+    // Y.js collaboration events
+    socket.on("join-note-yjs", (data: { noteId: string; workspaceId: string }) => {
+      // Delegate to YjsProvider
+      socket.emit("yjs-ready", { noteId: data.noteId });
     });
 
     socket.on("leave-note", (noteId: string) => {

@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import setupSocketHandlers from './socketHandlers';
+import { YjsProvider } from './yjsProvider';
 import workspaceRoutes from './routes/workspaces';
 import noteRoutes from './routes/notes';
 import userRoutes from './routes/users';
@@ -50,6 +51,9 @@ app.use('/api/notes', authenticateToken, noteRoutes);
 
 // Socket.IO setup
 setupSocketHandlers(io);
+
+// Initialize Y.js provider for CRDT collaboration
+const yjsProvider = new YjsProvider(io);
 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
