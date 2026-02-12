@@ -49,6 +49,7 @@ router.post('/', authenticateToken, requirePermission('write'), async (req: Auth
       content,
       workspaceId,
       author: authorId,
+      version: 1,
     });
     await note.save();
 
@@ -94,20 +95,50 @@ router.post('/', authenticateToken, requirePermission('write'), async (req: Auth
   }
 });
 
-// Update a note
+// Update a note with Optimistic Concurrency Control
 router.put('/:id', authenticateToken, requirePermission('write'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, content, authorId } = req.body;
-    const note = await Note.findByIdAndUpdate(
-      id,
-      { title, content, updatedAt: new Date() },
-      { new: true }
-    );
+    const { title, content, authorId, expectedVersion } = req.body;
 
+    // Fetch the current note
+    const note = await Note.findById(id);
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
+
+    // Check version for OCC
+    if (expectedVersion !== undefined && note.version !== expectedVersion) {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: 'Note has been updated by another user. Please refresh and try again.',
+        currentVersion: note.version,
+        expectedVersion,
+        clientChanges: { title, content },
+        serverData: {
+          title: note.title,
+          content: note.content,
+          updatedAt: note.updatedAt
+        },
+        guidance: 'Fetch the latest version, merge your changes manually, and retry the update.'
+      });
+    }
+
+    // Update the note with incremented version
+    const updatedNote = await Note.findByIdAndUpdate(
+      id,
+      {
+        title,
+        content,
+        version: note.version + 1,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    // Create version using PersistenceManager
+    const persistence = PersistenceManager.getInstance();
+    await persistence.createVersion(id, authorId, note.workspaceId.toString(), "REST update");
 
     // Invalidate cache for this note and workspace notes
     const cacheService = getCacheService();
@@ -117,6 +148,19 @@ router.put('/:id', authenticateToken, requirePermission('write'), async (req: Au
       await cacheService.delete(CacheKeys.noteVersions(id));
     }
 
+    // Emit domain event
+    const eventBus = getEventBus();
+    const event: NoteUpdatedEvent = {
+      type: EVENT_NAMES.NOTE_UPDATED,
+      timestamp: new Date(),
+      actorId: authorId,
+      workspaceId: note.workspaceId.toString(),
+      noteId: id,
+      title,
+      authorId,
+    };
+    await eventBus.emit(EVENT_NAMES.NOTE_UPDATED, event);
+
     // Log the event
     await AuditService.logEvent(
       'note_updated',
@@ -124,10 +168,10 @@ router.put('/:id', authenticateToken, requirePermission('write'), async (req: Au
       note.workspaceId.toString(),
       id,
       'note',
-      { title }
+      { title, version: updatedNote?.version }
     );
 
-    res.json(note);
+    res.json(updatedNote);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update note' });
   }

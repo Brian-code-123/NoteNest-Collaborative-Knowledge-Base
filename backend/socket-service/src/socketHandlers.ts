@@ -104,10 +104,10 @@ export default function setupSocketHandlers(io: SocketIOServer) {
       socket.to(`note-${noteId}`).emit("user-left", { userId: socket.userId });
     });
 
-    socket.on("update-note", async (data: { noteId: string; title: string; content: string }) => {
-      const { noteId, title, content } = data;
+    socket.on("update-note", async (data: { noteId: string; title: string; content: string; expectedVersion?: number }) => {
+      const { noteId, title, content, expectedVersion } = data;
 
-      // Validate note and permissions via main API
+      // Validate note and permissions via main API with OCC
       try {
         const response = await fetch(`${process.env.MAIN_API_URL}/api/notes/${noteId}/validate-update`, {
           method: 'POST',
@@ -115,11 +115,21 @@ export default function setupSocketHandlers(io: SocketIOServer) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${socket.handshake.auth.token}`
           },
-          body: JSON.stringify({ userId: socket.userId })
+          body: JSON.stringify({ userId: socket.userId, expectedVersion })
         });
 
         if (!response.ok) {
-          socket.emit("error", { message: "Permission denied" });
+          const errorData = await response.json();
+          if (response.status === 409) {
+            // Conflict detected
+            socket.emit('note-update-conflict', {
+              noteId,
+              conflict: errorData,
+              clientChanges: { title, content }
+            });
+            return;
+          }
+          socket.emit("error", { message: errorData.error || "Permission denied" });
           return;
         }
       } catch (error) {
@@ -127,7 +137,7 @@ export default function setupSocketHandlers(io: SocketIOServer) {
         return;
       }
 
-      // Update note (last-write-wins)
+      // Update note with incremented version
       const note = await Note.findById(noteId);
       if (!note) {
         socket.emit("error", { message: "Note not found" });
@@ -136,15 +146,14 @@ export default function setupSocketHandlers(io: SocketIOServer) {
 
       note.title = title;
       note.content = content;
+      note.version = note.version + 1;
       note.updatedAt = new Date();
       await note.save();
 
       // Create version
-      const latestVersion = await NoteVersion.findOne({ noteId }).sort({ versionNumber: -1 });
-      const nextVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
       const version = new NoteVersion({
         noteId,
-        versionNumber: nextVersionNumber,
+        versionNumber: note.version,
         contentSnapshot: { title, content },
         author: socket.userId,
         workspaceId: socket.workspaceId,
@@ -166,7 +175,7 @@ export default function setupSocketHandlers(io: SocketIOServer) {
             workspaceId: socket.workspaceId,
             resourceId: noteId,
             resourceType: "note",
-            details: { title, version: nextVersionNumber }
+            details: { title, version: note.version }
           })
         });
       } catch (error) {

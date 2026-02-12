@@ -80,7 +80,7 @@ app.post('/api/workspaces/:workspaceId/validate-access', authenticateToken, asyn
 
 app.post('/api/notes/:noteId/validate-update', authenticateToken, async (req: Request, res: Response) => {
   const { noteId } = req.params;
-  const { userId } = req.body;
+  const { userId, expectedVersion } = req.body;
 
   try {
     const note = await require('./models/Note').default.findById(noteId);
@@ -94,9 +94,44 @@ app.post('/api/notes/:noteId/validate-update', authenticateToken, async (req: Re
       return res.status(403).json({ error: 'Permission denied' });
     }
 
-    res.json({ valid: true });
+    // Check version for OCC
+    if (expectedVersion !== undefined && note.version !== expectedVersion) {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: 'Note has been updated by another user. Please refresh and try again.',
+        currentVersion: note.version,
+        expectedVersion,
+        serverData: {
+          title: note.title,
+          content: note.content,
+          updatedAt: note.updatedAt
+        },
+        guidance: 'Fetch the latest version, merge your changes manually, and retry the update.'
+      });
+    }
+
+    res.json({ valid: true, currentVersion: note.version });
   } catch (error) {
     res.status(500).json({ error: 'Validation failed' });
+  }
+});
+
+app.post('/api/notes/:noteId/create-version', authenticateToken, async (req: Request, res: Response) => {
+  const { noteId } = req.params;
+  const { authorId, reason } = req.body;
+
+  try {
+    const note = await require('./models/Note').default.findById(noteId);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    const persistence = require('./persistence').PersistenceManager.getInstance();
+    await persistence.createVersion(noteId, authorId, note.workspaceId.toString(), reason);
+
+    res.json({ versionCreated: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Version creation failed' });
   }
 });
 

@@ -109,6 +109,54 @@ Workspaces allow NoteNest to support **real-world collaboration**.
 
 ---
 
+## Optimistic Concurrency Control (OCC)
+
+NoteNest implements **Optimistic Concurrency Control** to prevent lost updates and ensure data integrity in collaborative editing scenarios.
+
+### How OCC Works
+- Each note has a `version` field that increments on every successful update
+- Clients must submit their expected version when updating a note
+- If the expected version doesn't match the current server version, a conflict is detected
+- Conflicts return HTTP 409 with detailed resolution guidance
+
+### Conflict Detection
+When updating a note:
+1. Client sends `expectedVersion` in request body
+2. Server compares `expectedVersion` with current `note.version`
+3. If versions match: increment version and apply update
+4. If versions don't match: return 409 Conflict with merge guidance
+
+### Conflict Response Structure
+```json
+{
+  "error": "Conflict",
+  "message": "Note has been updated by another user. Please refresh and try again.",
+  "currentVersion": 5,
+  "expectedVersion": 3,
+  "clientChanges": { "title": "New Title", "content": "New content" },
+  "serverData": {
+    "title": "Server Title",
+    "content": "Server content",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  },
+  "guidance": "Fetch the latest version, merge your changes manually, and retry the update."
+}
+```
+
+### Integration Points
+OCC is integrated across all update mechanisms:
+- **REST API**: PUT `/api/notes/:id` with `expectedVersion` in body
+- **Socket Updates**: `update-note` event includes `expectedVersion`
+- **Version History**: Each update creates a version snapshot
+- **Cache Invalidation**: Occurs only after successful updates
+- **Event Emission**: Domain events fired post-successful update
+
+### Benefits
+- Prevents silent data corruption
+- Protects collaborative editing integrity
+- Strengthens offline-first reliability
+- Aligns with production-grade SaaS standards
+
 ## Event-Driven Architecture
 
 NoteNest uses an **internal event bus** and **domain events** to decouple core business logic from side-effects, improving maintainability and scalability.
