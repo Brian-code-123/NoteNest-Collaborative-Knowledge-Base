@@ -16,23 +16,28 @@ interface Note {
   id: number;
   title: string;
   content?: string;
+  updatedAt: string;
 }
 
-const loadNotesFromStorage = (): Note[] => {
+function loadNotesFromStorage(): Note[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    return JSON.parse(raw);
   } catch {
     return [];
   }
-};
+}
 
-const saveNotesToStorage = (notes: Note[]) => {
+function saveNotesToStorage(notes: Note[]) {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
   }
-};
+}
+
+const CREATE_RESTRICTED_TITLE = "You need Editor or Admin role to create notes.";
+const DELETE_RESTRICTED_TITLE = "You need Editor or Admin role to delete notes.";
 
 export default function NotesPage() {
   const searchParams = useSearchParams();
@@ -40,18 +45,46 @@ export default function NotesPage() {
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
   const [createContent, setCreateContent] = useState("");
+  const [createTitleError, setCreateTitleError] = useState("");
+  const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+  const [createSuccessMessage, setCreateSuccessMessage] = useState<string | null>(null);
   const [viewingNote, setViewingNote] = useState<Note | null>(null);
 
-  const createBtnRef = useRef<HTMLButtonElement>(null);
+  const createButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Initial load
   useEffect(() => {
-    setTimeout(() => {
-      setNotes(loadNotesFromStorage());
+    const stored = loadNotesFromStorage();
+    const timer = setTimeout(() => {
+      setNotes(
+        stored.length > 0
+          ? stored
+          : [
+              {
+                id: 1,
+                title: "Project Overview",
+                content: "A high-level overview of the project.",
+                updatedAt: "2 hours ago",
+              },
+              {
+                id: 2,
+                title: "Meeting Notes",
+                content: "Key points from the last team sync.",
+                updatedAt: "Yesterday",
+              },
+            ]
+      );
+      setLoadError(null);
       setIsLoading(false);
-    }, 500);
+    }, 600);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -61,49 +94,115 @@ export default function NotesPage() {
   useEffect(() => {
     if (searchParams.get("new") === "1" && canCreateNote) {
       setShowCreateModal(true);
+      window.history.replaceState({}, "", window.location.pathname);
     }
   }, [searchParams, canCreateNote]);
 
-  const handleCreate = useCallback(() => {
-    if (!createTitle.trim()) return;
-    setNotes((prev) => [
-      ...prev,
-      { id: Date.now(), title: createTitle.trim(), content: createContent.trim() },
-    ]);
-    setShowCreateModal(false);
+  // Close view modal on Escape
+  useEffect(() => {
+    if (!viewingNote) return;
+    const handleEsc = () => setViewingNote(null);
+    window.addEventListener("shortcut-esc", handleEsc);
+    return () => window.removeEventListener("shortcut-esc", handleEsc);
+  }, [viewingNote]);
+
+  const retryLoad = () => {
+    setLoadError(null);
+    setIsLoading(true);
+    setTimeout(() => {
+      const stored = loadNotesFromStorage();
+      setNotes(
+        stored.length > 0
+          ? stored
+          : [
+              {
+                id: 1,
+                title: "Project Overview",
+                content: "A high-level overview of the project.",
+                updatedAt: "2 hours ago",
+              },
+              {
+                id: 2,
+                title: "Meeting Notes",
+                content: "Key points from the last team sync.",
+                updatedAt: "Yesterday",
+              },
+            ]
+      );
+      setIsLoading(false);
+    }, 600);
+  };
+
+  const handleCreateNote = useCallback(() => {
+    if (!canCreateNote) return;
+    setActionError(null);
     setCreateTitle("");
     setCreateContent("");
-    createBtnRef.current?.focus();
-  }, [createTitle, createContent]);
+    setCreateTitleError("");
+    setShowCreateModal(true);
+  }, [canCreateNote]);
 
-  const handleDelete = (id: number) => {
-    setNotes(notes.filter((n) => n.id !== id));
+  const handleSubmitCreate = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const title = createTitle.trim();
+      if (!title) {
+        setCreateTitleError("Title is required");
+        return;
+      }
+      if (title.length > TITLE_MAX_LENGTH) {
+        setCreateTitleError(`Title must be ${TITLE_MAX_LENGTH} characters or less`);
+        return;
+      }
+
+      const newNote: Note = {
+        id: Date.now(),
+        title,
+        content: createContent.trim() || undefined,
+        updatedAt: "Just now",
+      };
+
+      setNotes((prev) => [...prev, newNote]);
+      setCreateSuccessMessage("Note created");
+      setShowCreateModal(false);
+      setCreateTitle("");
+      setCreateContent("");
+      setIsSubmittingCreate(false);
+      createButtonRef.current?.focus();
+      setTimeout(() => setCreateSuccessMessage(null), 2000);
+    },
+    [createTitle, createContent]
+  );
+
+  const handleDeleteNote = (id: number) => {
+    setActionError(null);
     if (viewingNote?.id === id) setViewingNote(null);
+    setNotes(notes.filter((note) => note.id !== id));
   };
 
   return (
     <div className="flex">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Header
           title="Notes"
           showSearch
           action={
-            canCreateNote && notes.length > 0 && (
-              <button ref={createBtnRef} className="btn-primary" onClick={() => setShowCreateModal(true)}>
+            canCreateNote && (
+              <button
+                ref={createButtonRef}
+                type="button"
+                onClick={handleCreateNote}
+                className="btn-primary"
+              >
                 Create Note
               </button>
             )
           }
         />
 
-        <main
-          className="flex-1 relative overflow-auto"
-          style={{
-            background: "linear-gradient(135deg, rgba(59,130,246,0.03), rgba(139,92,246,0.03))",
-          }}
-        >
+        <main className="flex-1 overflow-auto relative flex justify-center">
           <div className="max-w-3xl mx-auto p-6">
             {isLoading ? (
               <SkeletonList count={4} />
@@ -112,12 +211,12 @@ export default function NotesPage() {
                 title="No notes yet"
                 description={
                   isViewer
-                    ? "You can only view notes."
+                    ? "You can view notes only."
                     : "Start by creating your first note."
                 }
                 action={
                   canCreateNote && (
-                    <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                    <button className="btn-primary" onClick={handleCreateNote}>
                       Create your first note
                     </button>
                   )
@@ -126,32 +225,33 @@ export default function NotesPage() {
             ) : (
               <>
                 <h3 className="text-lg font-semibold mb-1">Your Notes</h3>
-                <p className="text-sm text-muted mb-6">{notes.length} note(s)</p>
+                <p className="text-sm mb-6">{notes.length} note(s)</p>
 
                 <ul className="space-y-3">
                   {notes.map((note) => (
                     <li
                       key={note.id}
-                      className="flex items-center gap-4 p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition"
+                      className="rounded-xl border p-4 shadow-sm hover:shadow-md transition"
                     >
                       <button
-                        className="flex-1 text-left"
+                        className="w-full text-left"
                         onClick={() => setViewingNote(note)}
                       >
-                        <h4 className="font-semibold text-gray-900 truncate">
-                          {note.title}
-                        </h4>
-                        <p className="text-sm text-gray-600 truncate">
+                        <h4 className="font-semibold truncate">{note.title}</h4>
+                        <p className="text-sm truncate">
                           {note.content || "No content"}
+                        </p>
+                        <p className="text-xs mt-1 text-muted">
+                          Updated {note.updatedAt}
                         </p>
                       </button>
 
                       {canDeleteNote && (
                         <button
-                          onClick={() => handleDelete(note.id)}
-                          className="text-red-500 hover:bg-red-50 rounded-lg p-2"
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="text-red-500 text-sm mt-2"
                         >
-                          ✕
+                          Delete
                         </button>
                       )}
                     </li>
@@ -162,57 +262,6 @@ export default function NotesPage() {
           </div>
         </main>
       </div>
-
-      {/* Create Modal */}
-      {showCreateModal && canCreateNote && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">New Note</h2>
-
-            <input
-              className="w-full border rounded-lg px-3 py-2 mb-3"
-              placeholder="Title"
-              value={createTitle}
-              onChange={(e) => setCreateTitle(e.target.value)}
-              maxLength={TITLE_MAX_LENGTH}
-            />
-
-            <textarea
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-              placeholder="Content (optional)"
-              rows={4}
-              value={createContent}
-              onChange={(e) => setCreateContent(e.target.value)}
-            />
-
-            <div className="flex justify-end gap-3">
-              <button className="btn-secondary" onClick={() => setShowCreateModal(false)}>
-                Cancel
-              </button>
-              <button className="btn-primary" onClick={handleCreate}>
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Modal */}
-      {viewingNote && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg">
-            <h2 className="text-lg font-semibold mb-4">{viewingNote.title}</h2>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {viewingNote.content || "No content"}
-            </p>
-            <div className="flex justify-end mt-6">
-              <button className="btn-secondary" onClick={() => setViewingNote(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
