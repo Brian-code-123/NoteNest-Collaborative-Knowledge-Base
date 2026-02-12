@@ -95,7 +95,7 @@ export default function setupSocketHandlers(io: SocketIOServer) {
       const { noteId, title, content, expectedVersion } = data;
 
       // Validate note and permissions with OCC
-      const note = await Note.findOne({ _id: noteId, workspaceId: socket.workspaceId });
+      const note = await Note.findOne({ _id: noteId, workspaceId: socket.workspaceId }) as any;
       if (!note) {
         socket.emit("error", { message: "Note not found" });
         return;

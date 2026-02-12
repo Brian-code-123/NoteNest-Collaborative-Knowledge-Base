@@ -7,6 +7,7 @@ export interface INote extends Document {
   author: string; // user ID
   tags?: string[];
   yjsState?: Buffer; // Y.js document state
+  version: number; // For optimistic concurrency control
   createdAt: Date;
   updatedAt: Date;
 }

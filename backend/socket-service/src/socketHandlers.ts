@@ -119,7 +119,7 @@ export default function setupSocketHandlers(io: SocketIOServer) {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
+          const errorData = await response.json() as any;
           if (response.status === 409) {
             // Conflict detected
             socket.emit('note-update-conflict', {

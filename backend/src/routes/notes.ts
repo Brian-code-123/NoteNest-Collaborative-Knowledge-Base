@@ -102,7 +102,7 @@ router.put('/:id', authenticateToken, requirePermission('write'), async (req: Au
     const { title, content, authorId, expectedVersion } = req.body;
 
     // Fetch the current note
-    const note = await Note.findById(id);
+    const note = await Note.findById(id) as any;
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
@@ -134,7 +134,7 @@ router.put('/:id', authenticateToken, requirePermission('write'), async (req: Au
         updatedAt: new Date()
       },
       { new: true }
-    );
+    ) as any;
 
     // Create version using PersistenceManager
     const persistence = PersistenceManager.getInstance();
@@ -157,7 +157,10 @@ router.put('/:id', authenticateToken, requirePermission('write'), async (req: Au
       workspaceId: note.workspaceId.toString(),
       noteId: id,
       title,
-      authorId,
+      changes: {
+        title: { from: note.title, to: title },
+        content: { from: note.content, to: content },
+      },
     };
     await eventBus.emit(EVENT_NAMES.NOTE_UPDATED, event);
 
