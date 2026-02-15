@@ -58,6 +58,7 @@
 
   --line-height-tight: 1.25;
   --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -103,50 +104,45 @@ nav input::placeholder {
 }
 
 /* =====================================================
-   BUTTON SIZE NORMALIZATION (OSQ ISSUE)
+   Button normalization
    ===================================================== */
 
-/* Primary & Secondary buttons */
 .btn-primary,
 .btn-secondary {
-  min-height: 40px;              /* consistent height */
-  padding: 0.5rem 1rem;          /* px-4 py-2 */
+  min-height: 40px;
+  padding: 0.5rem 1rem;
   font-size: var(--font-size-sm);
-  border-radius: 0.5rem;         /* rounded-md */
+  border-radius: 0.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
 }
 
-/* Primary */
 .btn-primary {
   background: linear-gradient(135deg, var(--color-info), #8b5cf6);
   color: white;
   border: none;
 }
 
-/* Secondary */
 .btn-secondary {
   background: transparent;
   color: var(--color-info);
   border: 2px solid var(--color-info);
 }
 
-/* Icon-only buttons */
 .btn-icon {
   width: 40px;
   height: 40px;
-  padding: 0;
   border-radius: 0.5rem;
+  background: transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
 }
 
 /* =====================================================
-   Focus styles
+   Focus-visible accessibility
    ===================================================== */
 
 *:focus-visible {

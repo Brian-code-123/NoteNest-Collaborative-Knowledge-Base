@@ -47,7 +47,6 @@ export default function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
@@ -60,7 +59,7 @@ export default function NotesPage() {
   const [viewingNote, setViewingNote] = useState<Note | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
 
-  /* ---------------- Initial Load ---------------- */
+  /* ---------- Initial load ---------- */
   useEffect(() => {
     const stored = loadNotesFromStorage();
 
@@ -93,7 +92,7 @@ export default function NotesPage() {
     if (!isLoading) saveNotesToStorage(notes);
   }, [notes, isLoading]);
 
-  /* ---------------- Retry Load ---------------- */
+  /* ---------- Retry Load ---------- */
   const retryLoad = () => {
     setLoadError(null);
     setIsLoading(true);
@@ -116,7 +115,7 @@ export default function NotesPage() {
     }, 600);
   };
 
-  /* ---------------- ?new=1 ---------------- */
+  /* ---------- ?new=1 ---------- */
   useEffect(() => {
     if (searchParams.get("new") === "1" && canCreateNote) {
       setShowCreateModal(true);
@@ -124,7 +123,23 @@ export default function NotesPage() {
     }
   }, [searchParams, canCreateNote]);
 
-  /* ---------------- Create Note ---------------- */
+  /* ---------- Keyboard shortcuts ---------- */
+  useEffect(() => {
+    if (!canCreateNote) return;
+    const handler = () => handleCreateNote();
+    window.addEventListener("shortcut-create-note", handler);
+    return () =>
+      window.removeEventListener("shortcut-create-note", handler);
+  }, [canCreateNote]);
+
+  useEffect(() => {
+    if (!viewingNote) return;
+    const esc = () => setViewingNote(null);
+    window.addEventListener("shortcut-esc", esc);
+    return () => window.removeEventListener("shortcut-esc", esc);
+  }, [viewingNote]);
+
+  /* ---------- Create Note ---------- */
   const handleCreateNote = useCallback(() => {
     if (!canCreateNote) return;
     setCreateTitle("");
@@ -132,14 +147,6 @@ export default function NotesPage() {
     setCreateTitleError("");
     setShowCreateModal(true);
   }, [canCreateNote]);
-
-  useEffect(() => {
-    if (!canCreateNote) return;
-    const handler = () => handleCreateNote();
-    window.addEventListener("shortcut-create-note", handler);
-    return () =>
-      window.removeEventListener("shortcut-create-note", handler);
-  }, [canCreateNote, handleCreateNote]);
 
   const handleCloseCreateModal = useCallback(() => {
     if (isSubmittingCreate) return;
@@ -150,8 +157,8 @@ export default function NotesPage() {
   const handleSubmitCreate = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-
       const title = createTitle.trim();
+
       if (!title) {
         setCreateTitleError("Title is required");
         return;
@@ -173,7 +180,6 @@ export default function NotesPage() {
       setNotes((prev) => [...prev, newNote]);
       setShowCreateModal(false);
       setCreateSuccessMessage("Note created");
-
       setTimeout(() => setCreateSuccessMessage(null), 2000);
     },
     [createTitle, createContent]
@@ -295,6 +301,33 @@ export default function NotesPage() {
           </div>
         </main>
       </div>
+
+      {viewingNote && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 relative">
+            <button
+              onClick={() => setViewingNote(null)}
+              className="btn-icon absolute top-3 right-3"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4">
+              {viewingNote.title}
+            </h2>
+
+            <p className="text-sm whitespace-pre-wrap">
+              {viewingNote.content || "No content yet."}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
