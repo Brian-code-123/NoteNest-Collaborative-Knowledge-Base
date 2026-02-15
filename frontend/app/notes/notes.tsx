@@ -283,23 +283,18 @@ setCreateSuccessMessage("Note created successfully.");
               )}
 
               {loadError && (
-                <ErrorState
-title="Unable to load notes. Please try again."
-                  message={loadError}
-                  variant="error"
-                  onDismiss={() => setLoadError(null)}
-                  action={
-                    <button
-                      type="button"
-                      onClick={retryLoad}
-                      className="btn-primary"
-                    >
-                      Try again
-                    </button>
-                  }
-                  className="mb-6"
-                />
-              )}
+  <ErrorState
+    title="Unable to load notes. Please try again."
+    message={loadError}
+    variant="error"
+    action={
+      <button className="btn-primary" onClick={retryLoad}>
+        Try again
+      </button>
+    }
+  />
+)}
+
 
               {actionError && (
                 <ErrorState
