@@ -7,6 +7,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { UserRoleProvider } from "@/contexts/UserRoleContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { FeatureFlagProvider } from "@/contexts/FeatureFlagContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NoteNest",
-  description: "Collaborative Knowledge Base",
+  title: "NoteNest - Collaborative Knowledge Base for Teams",
+  description: "NoteNest is an open-source, team-based knowledge base that allows users to create, organize, and collaborate on notes and documentation in real time.",
 };
 
 export default function RootLayout({
@@ -37,6 +38,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
+          <AuthProvider>
           <WorkspaceProvider>
             <UserRoleProvider>
               <FeatureFlagProvider>
@@ -46,6 +48,7 @@ export default function RootLayout({
               </FeatureFlagProvider>
             </UserRoleProvider>
           </WorkspaceProvider>
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>
