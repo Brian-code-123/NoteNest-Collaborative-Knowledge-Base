@@ -33,25 +33,39 @@ function getTimeAgo(dateString: string) {
 export default function DashboardPage() {
   const { canCreateNote } = usePermissions();
 
+  /* ✅ Badge Color Logic (NEW) */
+  const getWorkspaceBadgeClass = (workspace: string) => {
+    switch (workspace) {
+      case "Team":
+        return "bg-purple-500/10 text-purple-400";
+      case "Personal":
+        return "bg-blue-500/10 text-blue-400";
+      case "Product":
+        return "bg-green-500/10 text-green-400";
+      default:
+        return "bg-gray-500/10 text-gray-400";
+    }
+  };
+
   /* ✅ UPDATED — Use timestamps instead of text */
   const [recentNotes] = useState([
     {
       id: 1,
       title: "Project Plan",
       workspace: "Team",
-      createdAt: new Date().toISOString(), // Just now
+      createdAt: new Date().toISOString(),
     },
     {
       id: 2,
       title: "Meeting Notes",
       workspace: "Personal",
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hr ago
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 3,
       title: "Design Ideas",
       workspace: "Product",
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     },
   ]);
 
@@ -77,10 +91,9 @@ export default function DashboardPage() {
           <main style={{ background: "#000", minHeight: "100vh", padding: 32 }}>
             <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
-              {/* ✅ Welcome Section */}
+              {/* Welcome Section */}
               <section
-                className={sectionCardClass}
-                style={{ ...cardStyle, padding: "24px" }}
+                style={{ ...cardStyle, padding: "24px", borderRadius: 16 }}
               >
                 <h2
                   className="text-xl font-semibold mb-2"
@@ -96,17 +109,10 @@ export default function DashboardPage() {
                   This is your NoteNest dashboard. Get started by creating your first note
                   and organizing your team's knowledge.
                 </p>
-
-                <p
-                  className="text-xs"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  Last updated: {lastUpdated}
-                </p>
               </section>
 
               {/* Quick Actions */}
-              <section style={{ ...cardStyle, borderRadius: 16 }}>
+              <section style={{ ...cardStyle, borderRadius: 16, marginTop: 24 }}>
                 <div style={{ padding: 20, borderBottom: "1px solid #222" }}>
                   <h3 style={{ color: "#fff" }}>Quick Actions</h3>
                 </div>
@@ -160,12 +166,18 @@ export default function DashboardPage() {
                         {note.title}
                       </div>
 
-                      <div style={{ color: "#aaa", fontSize: 13 }}>
-                        {note.workspace}
+                      {/* ✅ Colored Badge Instead of Plain Text */}
+                      <div className="mt-2">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${getWorkspaceBadgeClass(
+                            note.workspace
+                          )}`}
+                        >
+                          {note.workspace}
+                        </span>
                       </div>
 
-                      {/* ✅ NEW — Dynamic Time */}
-                      <div style={{ color: "#666", fontSize: 12 }}>
+                      <div style={{ color: "#666", fontSize: 12, marginTop: 6 }}>
                         {getTimeAgo(note.createdAt)}
                       </div>
                     </div>
