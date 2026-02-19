@@ -101,12 +101,13 @@ export default function NotesPage() {
   }, [notes, isLoading]);
 
   /* ---------- Create Note ---------- */
-  const handleCreateNote = useCallback(() => {
-    if (!canCreateNote) return;
+ const handleCreateNote = useCallback(() => {
+  if (!canCreateNote) return;
+  
+  setCreateTitleError("");
+  setShowCreateModal(true);
+}, [canCreateNote]);
 
-    setCreateTitleError("");
-    setShowCreateModal(true);
-  }, [canCreateNote]);
 
   const handleSubmitCreate = useCallback(
     (e: React.FormEvent) => {
@@ -131,20 +132,21 @@ export default function NotesPage() {
         content: createContent.trim() || undefined,
       };
 
-      setIsSubmitting(true);
+     setIsSubmitting(true);
 
-      setNotes((prev) => [...prev, newNote]);
-      setCreateSuccessMessage("Note created successfully.");
-      setShowCreateModal(false);
+setNotes((prev) => [...prev, newNote]);
+setCreateSuccessMessage("Note created successfully.");
+setShowCreateModal(false);
 
-      // Clear draft after successful creation
-      setCreateTitle("");
-      setCreateContent("");
+// Clear draft after successful creation
+setCreateTitle("");
+setCreateContent("");
 
-      setTimeout(() => {
-        setCreateSuccessMessage(null);
-        setIsSubmitting(false);
-      }, 2000);
+setTimeout(() => {
+  setCreateSuccessMessage(null);
+  setIsSubmitting(false);
+}, 2000);
+
 
     },
     [createTitle, createContent]
@@ -262,9 +264,10 @@ export default function NotesPage() {
                 className="w-full border p-2 mb-2"
                 placeholder="Title"
               />
-              <p className="text-xs text-gray-500 mb-2">
+             <p className="text-xs text-gray-500 mb-2">
   Max {TITLE_MAX_LENGTH} characters
 </p>
+
 
 
 
@@ -302,6 +305,7 @@ export default function NotesPage() {
 >
   {isSubmitting ? "Creating..." : "Create note"}
 </button>
+
 
               </div>
             </form>
