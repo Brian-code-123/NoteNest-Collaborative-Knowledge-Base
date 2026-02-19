@@ -50,11 +50,12 @@ export default function NotesPage() {
   const [createSuccessMessage, setCreateSuccessMessage] =
     useState<string | null>(null);
 
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   const createButtonRef = useRef<HTMLButtonElement>(null);
 
+  /* ---------- ESC to close modal ---------- */
   useEffect(() => {
     if (!showCreateModal) return;
 
@@ -69,7 +70,6 @@ export default function NotesPage() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showCreateModal]);
 
-
   /* ---------- Initial Load ---------- */
   useEffect(() => {
     const stored = loadNotesFromStorage();
@@ -78,17 +78,17 @@ export default function NotesPage() {
         stored.length > 0
           ? stored
           : [
-            {
-              id: 1,
-              title: "Project Overview",
-              content: "A high-level overview of the project.",
-            },
-            {
-              id: 2,
-              title: "Meeting Notes",
-              content: "Key points from the last team sync.",
-            },
-          ]
+              {
+                id: 1,
+                title: "Project Overview",
+                content: "A high-level overview of the project.",
+              },
+              {
+                id: 2,
+                title: "Meeting Notes",
+                content: "Key points from the last team sync.",
+              },
+            ]
       );
       setIsLoading(false);
     }, 600);
@@ -101,14 +101,25 @@ export default function NotesPage() {
   }, [notes, isLoading]);
 
   /* ---------- Create Note ---------- */
- const handleCreateNote = useCallback(() => {
-  if (!canCreateNote) return;
-  
-  setCreateTitleError("");
-  setShowCreateModal(true);
-}, [canCreateNote]);
+  const handleCreateNote = useCallback(() => {
+    if (!canCreateNote) return;
+    setEditingNoteId(null);
+    setCreateTitle("");
+    setCreateContent("");
+    setCreateTitleError("");
+    setShowCreateModal(true);
+  }, [canCreateNote]);
 
+  /* ---------- Edit Note ---------- */
+  const handleEditNote = useCallback((note: Note) => {
+    setEditingNoteId(note.id);
+    setCreateTitle(note.title);
+    setCreateContent(note.content || "");
+    setCreateTitleError("");
+    setShowCreateModal(true);
+  }, []);
 
+  /* ---------- Submit (Create / Edit) ---------- */
   const handleSubmitCreate = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
@@ -126,30 +137,44 @@ export default function NotesPage() {
         return;
       }
 
-      const newNote: Note = {
-        id: Date.now(),
-        title,
-        content: createContent.trim() || undefined,
-      };
+      setIsSubmitting(true);
 
-     setIsSubmitting(true);
+      if (editingNoteId !== null) {
+        // Edit existing note
+        setNotes((prev) =>
+          prev.map((note) =>
+            note.id === editingNoteId
+              ? { ...note, title, content: createContent.trim() || undefined }
+              : note
+          )
+        );
+      } else {
+        // Create new note
+        const newNote: Note = {
+          id: Date.now(),
+          title,
+          content: createContent.trim() || undefined,
+        };
+        setNotes((prev) => [...prev, newNote]);
+      }
 
-setNotes((prev) => [...prev, newNote]);
-setCreateSuccessMessage("Note created successfully.");
-setShowCreateModal(false);
+      setCreateSuccessMessage(
+        editingNoteId !== null
+          ? "Note updated successfully."
+          : "Note created successfully."
+      );
 
-// Clear draft after successful creation
-setCreateTitle("");
-setCreateContent("");
+      setShowCreateModal(false);
+      setEditingNoteId(null);
+      setCreateTitle("");
+      setCreateContent("");
 
-setTimeout(() => {
-  setCreateSuccessMessage(null);
-  setIsSubmitting(false);
-}, 2000);
-
-
+      setTimeout(() => {
+        setCreateSuccessMessage(null);
+        setIsSubmitting(false);
+      }, 2000);
     },
-    [createTitle, createContent]
+    [createTitle, createContent, editingNoteId]
   );
 
   return (
@@ -199,12 +224,11 @@ setTimeout(() => {
             ) : notes.length === 0 ? (
               <EmptyState
                 title="No notes yet"
-               description={
-  isViewer
-    ? "You don’t have permission to create notes, but you can view existing ones."
-    : "You don’t have any notes yet. Create your first note to get started."
-}
-
+                description={
+                  isViewer
+                    ? "You don’t have permission to create notes, but you can view existing ones."
+                    : "You don’t have any notes yet. Create your first note to get started."
+                }
                 action={
                   canCreateNote && (
                     <button
@@ -222,12 +246,45 @@ setTimeout(() => {
                 {notes.map((note) => (
                   <li
                     key={note.id}
-                    className="rounded-xl border p-4 bg-white shadow-sm"
+                    className="rounded-xl border p-4 bg-white shadow-sm flex justify-between gap-4"
                   >
-                    <h4 className="font-semibold">{note.title}</h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {note.content || "No content"}
-                    </p>
+                    <div>
+                      <h4 className="font-semibold">{note.title}</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {note.content || "No content"}
+                      </p>
+                    </div>
+
+                    {!isViewer && (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditNote(note)}
+                          aria-label="Edit note"
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          ✏️
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              "Are you sure you want to delete this note? This action cannot be undone."
+                            );
+                            if (confirmed) {
+                              setNotes((prev) =>
+                                prev.filter((n) => n.id !== note.id)
+                              );
+                            }
+                          }}
+                          aria-label="Delete note"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -236,7 +293,7 @@ setTimeout(() => {
         </main>
       </div>
 
-      {/* Create Note Modal */}
+      {/* Create / Edit Modal */}
       {showCreateModal && canCreateNote && (
         <div
           role="dialog"
@@ -244,25 +301,21 @@ setTimeout(() => {
           aria-labelledby="new-note-title"
           className="fixed inset-0 bg-black/50 flex items-center justify-center"
         >
-
-<div className="relative bg-white p-6 rounded w-full max-w-md">
-  <button
-  type="button"
-  onClick={() => {
-    setShowCreateModal(false);
-    createButtonRef.current?.focus();
-  }}
-  aria-label="Close dialog"
-  className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
->
-  ✕
-</button>
-
-            <h2
-              id="new-note-title"
-              className="text-xl font-semibold mb-4"
+          <div className="relative bg-white p-6 rounded w-full max-w-md">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(false);
+                createButtonRef.current?.focus();
+              }}
+              aria-label="Close dialog"
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
             >
-              New note
+              ✕
+            </button>
+
+            <h2 id="new-note-title" className="text-xl font-semibold mb-4">
+              {editingNoteId !== null ? "Edit note" : "New note"}
             </h2>
 
             <form onSubmit={handleSubmitCreate} noValidate>
@@ -277,14 +330,10 @@ setTimeout(() => {
                 className="w-full border p-2 mb-2"
                 placeholder="Title"
               />
-             <p className="text-xs text-gray-500 mb-2">
-  Max {TITLE_MAX_LENGTH} characters
-</p>
 
-
-
-
-
+              <p className="text-xs text-gray-500 mb-2">
+                Max {TITLE_MAX_LENGTH} characters
+              </p>
 
               {createTitleError && (
                 <p className="text-sm text-red-600 mb-2">
@@ -311,15 +360,17 @@ setTimeout(() => {
                   Cancel
                 </button>
 
-               <button
-  type="submit"
-  className="btn-primary"
-  disabled={isSubmitting}
->
-  {isSubmitting ? "Creating..." : "Create note"}
-</button>
-
-
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? "Saving..."
+                    : editingNoteId !== null
+                    ? "Update note"
+                    : "Create note"}
+                </button>
               </div>
             </form>
           </div>
