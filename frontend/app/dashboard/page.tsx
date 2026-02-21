@@ -7,14 +7,14 @@ import Header from "@/components/Header";
 import { usePermissions } from "@/hooks/usePermissions";
 import RouteGuard from "@/components/RouteGuard";
 
-const CREATE_RESTRICTED_TITLE =
-  "You need Editor or Admin role to create notes.";
+/* -------- Time Ago Helper -------- */
+function getTimeAgo(value: string | number | undefined) {
+  if (!value) return "Recently";
 
-/* ✅ Time Ago Formatter */
-function getTimeAgo(dateString: string) {
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "Recently";
+
   const now = new Date();
-  const date = new Date(dateString);
-
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (seconds < 10) return "Just now";
@@ -30,155 +30,122 @@ function getTimeAgo(dateString: string) {
   return `${days} days ago`;
 }
 
+/* -------- Safe LocalStorage Read -------- */
+function loadNotesSafely() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = localStorage.getItem("notenest-notes");
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function DashboardPage() {
   const { canCreateNote } = usePermissions();
+  const [notes, setNotes] = useState<any[]>([]);
 
-  /* ✅ Badge Color Logic (NEW) */
-  const getWorkspaceBadgeClass = (workspace: string) => {
-    switch (workspace) {
-      case "Team":
-        return "bg-purple-500/10 text-purple-400";
-      case "Personal":
-        return "bg-blue-500/10 text-blue-400";
-      case "Product":
-        return "bg-green-500/10 text-green-400";
-      default:
-        return "bg-gray-500/10 text-gray-400";
-    }
-  };
+  /* Load notes safely */
+  useEffect(() => {
+    setNotes(loadNotesSafely());
+  }, []);
 
-  /* ✅ UPDATED — Use timestamps instead of text */
-  const [recentNotes] = useState([
-    {
-      id: 1,
-      title: "Project Plan",
-      workspace: "Team",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 2,
-      title: "Meeting Notes",
-      workspace: "Personal",
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 3,
-      title: "Design Ideas",
-      workspace: "Product",
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ]);
+  /* Recent notes (latest 5) */
+  const recentNotes = [...notes]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+    )
+    .slice(0, 5);
 
   return (
     <RouteGuard requireAuth>
-      <div className="flex min-h-screen bg-[#F3F0E6]">
+      <div className="flex min-h-screen bg-black">
         <Sidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
           <Header title="Dashboard" showSearch />
 
-          <main className="flex-1 overflow-auto p-4 sm:p-8">
+          <main className="flex-1 overflow-auto p-6">
             <div className="max-w-4xl mx-auto space-y-8">
 
-              {/* Welcome Section */}
-              <section className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm">
-                <h2 className="font-display text-4xl font-bold mb-3 text-stone-900">
+              {/* Welcome */}
+              <section className="bg-[#0b0b0b] border border-[#1f1f1f] rounded-2xl p-6">
+                <h2 className="text-2xl font-semibold text-white mb-2">
                   Welcome back!
                 </h2>
-
-                <p className="text-lg text-stone-600">
-                  This is your NoteNest dashboard. Get started by creating your
-                  first note and organizing your team's knowledge.
+                <p className="text-gray-400">
+                  Manage and organize your notes from one place.
                 </p>
               </section>
 
               {/* Quick Actions */}
-              <section className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm">
-                <h3 className="font-display text-2xl font-bold mb-6 text-stone-900">Quick Actions</h3>
+              <section className="bg-[#0b0b0b] border border-[#1f1f1f] rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  Quick Actions
+                </h3>
 
-                <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex gap-4">
                   {canCreateNote && (
-                    <Link href="/notes?new=1" className="bg-[#18181b] hover:bg-[#27272a] text-white px-6 py-3 rounded-full text-sm font-medium transition-colors flex items-center gap-2">
-                       <span className="material-icons-outlined text-sm">add</span> Create Note
+                    <Link
+                      href="/notes?new=1"
+                      className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                    >
+                      + Create Note
                     </Link>
                   )}
 
-                  <Link href="/notes" className="bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 px-6 py-3 rounded-full text-sm font-medium transition-colors flex items-center gap-2">
-                    <span className="material-icons-outlined text-sm">article</span> View All Notes
+                  <Link
+                    href="/notes"
+                    className="px-5 py-2 rounded-lg border border-gray-700 text-white hover:bg-gray-800"
+                  >
+                    View All Notes
                   </Link>
                 </div>
               </section>
 
               {/* Recent Notes */}
-              <section className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <h3 className="font-display text-2xl font-bold text-stone-900">
+              <section className="bg-[#0b0b0b] border border-[#1f1f1f] rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">
                     Recent Notes
                   </h3>
-                  <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-xs font-bold border border-stone-200">
+                  <span className="text-sm text-gray-400">
                     {recentNotes.length}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {recentNotes.length === 0 ? (
-                    <div className="col-span-full flex flex-col items-center justify-center py-12 text-stone-400 bg-stone-50 rounded-2xl border border-stone-200 border-dashed">
-                      <span className="material-icons-outlined text-4xl mb-3">description</span>
-                      <div className="text-lg font-medium text-stone-900 mb-1">
-                        No recent notes
-                      </div>
-                      <div className="text-sm">
-                        Start by creating your first note.
-                      </div>
-
-                      {canCreateNote && (
-                        <Link
-                          href="/notes?new=1"
-                          className="mt-4 px-6 py-2 rounded-full bg-[#18181b] hover:bg-[#27272a] text-white text-sm font-medium transition flex items-center gap-2"
-                        >
-                          <span className="material-icons-outlined text-sm">add</span> Create Note
-                        </Link>
-                      )}
-                    </div>
-                  ) : (
-                    recentNotes.map((note) => (
+                {recentNotes.length === 0 ? (
+                  <div className="text-gray-400 text-center py-10">
+                    No recent notes found.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentNotes.map((note) => (
                       <div
                         key={note.id}
-                        className="p-6 bg-white border border-stone-200 rounded-2xl cursor-pointer hover:border-stone-400 hover:shadow-md transition-all group"
+                        className="border border-gray-800 rounded-xl p-4 bg-[#0f0f0f]"
                       >
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="font-semibold text-lg text-stone-900 group-hover:text-blue-600 transition-colors">
-                            {note.title}
-                          </div>
-                          <button className="text-stone-400 hover:text-stone-900 transition-colors">
-                            <span className="material-icons-outlined text-sm">more_horiz</span>
-                          </button>
+                        <div className="text-white font-semibold">
+                          {note.title}
                         </div>
 
-                        <div className="flex items-center justify-between mt-8">
-                          <div
-                            className={`text-xs font-bold px-2.5 py-1 rounded-md ${
-                              note.workspace === "Team"
-                                ? "bg-purple-100 text-purple-700"
-                                : note.workspace === "Personal"
-                                ? "bg-blue-100 text-blue-700"
-                                : note.workspace === "Product"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-stone-100 text-stone-700"
-                            }`}
-                          >
-                            {note.workspace}
-                          </div>
+                        <div className="text-sm text-gray-400 mt-1">
+                          {note.workspace ?? "Personal"}
+                        </div>
 
-                          <div className="text-stone-500 text-xs font-medium flex items-center gap-1">
-                            <span className="material-icons-outlined text-[14px]">schedule</span>
-                            {getTimeAgo(note.createdAt)}
-                          </div>
+                        <div className="text-xs text-gray-500 mt-2">
+                          {getTimeAgo(note.createdAt)}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </section>
 
             </div>
