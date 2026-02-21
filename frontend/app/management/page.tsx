@@ -80,7 +80,7 @@ export default function ManagementPage() {
               </div>
 
               {/* Tabs */}
-              <div className="flex space-x-1 mb-6">
+              <div className="flex space-x-1 mb-6 border-b border-[#222] pb-1">
                 {[
                   { id: 'groups', label: 'Groups' },
                   { id: 'permissions', label: 'Permissions' },
