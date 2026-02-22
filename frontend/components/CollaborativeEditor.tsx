@@ -14,6 +14,21 @@ const CollaborativeEditor = ({ noteId, currentUser }: { noteId: string, currentU
     const [ydoc] = useState(() => new Y.Doc());
     const [provider, setProvider] = useState<YSocketIOProvider | null>(null);
     const [copied, setCopied] = useState(false);
+    const [lastSaved, setLastSaved] = useState<number | null>(null);
+
+    useEffect(() => {
+        const handleNoteSaved = (data: { noteId: string, timestamp: number }) => {
+            if (data.noteId === noteId) {
+                setLastSaved(data.timestamp);
+            }
+        };
+
+        socket.on('note-saved', handleNoteSaved);
+        
+        return () => {
+            socket.off('note-saved', handleNoteSaved);
+        };
+    }, [noteId]);
 
     const handleCopyNote = () => {
         if (!editor) return;
@@ -50,7 +65,10 @@ const CollaborativeEditor = ({ noteId, currentUser }: { noteId: string, currentU
 
     return (
         <div>
-            <div className="flex justify-end mb-2">
+            <div className="flex justify-between items-center mb-2">
+                <div className="text-xs text-gray-400">
+                    {lastSaved ? `Last saved at ${new Date(lastSaved).toLocaleTimeString()}` : 'Saving...'}
+                </div>
                 <button
                     onClick={handleCopyNote}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-stone-700 dark:hover:bg-stone-600 rounded-md transition-colors"

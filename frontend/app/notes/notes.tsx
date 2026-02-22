@@ -275,24 +275,38 @@ export default function NotesPage() {
                         </p>
                       </div>
 
-                      {!isViewer && (
-                        <div className="flex gap-2">
-                          <button
-                            title="Edit note"
-                            onClick={() => handleEditNote(note)}
-                            className="text-blue-600"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            title="Delete note"
-                            onClick={() => handleDeleteNote(note)}
-                            className="text-red-600"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        <button
+                          title="Copy note"
+                          onClick={() => {
+                            const text = note.content || note.title;
+                            navigator.clipboard.writeText(text);
+                            // Visual feedback could be added here if needed, but for now simple copy
+                            alert("Copied to clipboard!"); 
+                          }}
+                          className="text-gray-600 hover:text-gray-900"
+                        >
+                          📋
+                        </button>
+                        {!isViewer && (
+                          <>
+                            <button
+                              title="Edit note"
+                              onClick={() => handleEditNote(note)}
+                              className="text-blue-600"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              title="Delete note"
+                              onClick={() => handleDeleteNote(note)}
+                              className="text-red-600"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
