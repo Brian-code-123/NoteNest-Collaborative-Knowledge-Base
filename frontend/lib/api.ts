@@ -214,30 +214,139 @@ class ApiService {
     });
   }
 
+<<<<<<< HEAD
+  async pinNote(id: string, isPinned: boolean): Promise<Note> {
+    return this.request(`/api/notes/${id}/pin`, {
+      method: "PATCH",
+      body: JSON.stringify({ isPinned }),
+    });
+  }
+
+  async restoreNoteVersion(
+    noteId: string,
+    versionNumber: number,
+    authorId: string
+  ): Promise<{ note: Note }> {
+    return this.request(`/api/notes/${noteId}/restore`, {
+      method: "POST",
+      body: JSON.stringify({ versionNumber, authorId }),
+    });
+  }
+
+  async forkNote(noteId: string, data: ForkNoteRequest): Promise<Note> {
+    return this.request(`/api/notes/${noteId}/fork`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async mergeNote(noteId: string, data: MergeNoteRequest): Promise<Note> {
+    return this.request(`/api/notes/${noteId}/merge`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
   /* ---------- Users ---------- */
-  async register(
-    email: string,
-    password: string,
-    name: string
-  ): Promise<{ userId: string; message: string }> {
-    return this.request("/api/users/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password, name }),
+
+  async getNoteDiff(
+    noteId: string,
+    version1: number,
+    version2: number
+  ): Promise<NoteDiff> {
+    return this.request(
+      `/api/notes/${noteId}/diff?v1=${version1}&v2=${version2}`
+    );
+  }
+
+  /* ---------- Tags ---------- */
+  async getWorkspaceTags(workspaceId: string): Promise<string[]> {
+    return this.request(`/api/notes/workspace/${workspaceId}/tags`);
+  }
+
+  /* ---------- Invites ---------- */
+  async getInvites(workspaceId: string): Promise<unknown[]> {
+    return this.request(`/api/workspaces/${workspaceId}/invites`);
+  }
+
+  async getInviteDetails(token: string): Promise<unknown> {
+    return this.request(`/api/invites/${token}`);
+  }
+
+  async createInvite(workspaceId: string, email: string, role: string): Promise<unknown> {
+    return this.request(`/api/workspaces/${workspaceId}/invites`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
     });
   }
 
-  async login(
-    email: string,
-    password: string
-  ): Promise<{ token: string; user: User }> {
-    return this.request("/api/users/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
+  async revokeInvite(workspaceId: string, inviteId: string): Promise<unknown> {
+    return this.request(`/api/workspaces/${workspaceId}/invites/${inviteId}`, {
+      method: 'DELETE',
     });
   }
 
-  async getUser(id: string): Promise<User> {
-    return this.request(`/api/users/${id}`);
+  async acceptInvite(token: string): Promise<unknown> {
+    return this.request('/api/accept-invite', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  /* ---------- Notifications ---------- */
+  async getNotifications(
+    workspaceId?: string,
+    limit: number = 20,
+    skip: number = 0
+  ): Promise<{ notifications: unknown[]; total: number; unreadCount: number }> {
+    const params = new URLSearchParams();
+    if (workspaceId) params.append('workspaceId', workspaceId);
+    params.append('limit', limit.toString());
+    params.append('skip', skip.toString());
+    return this.request(`/api/notifications?${params.toString()}`);
+  }
+
+  async getUnreadNotificationCount(): Promise<{ unreadCount: number }> {
+    return this.request('/api/notifications/count');
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<unknown> {
+    return this.request(`/api/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async dismissNotification(notificationId: string): Promise<{ message: string }> {
+    return this.request(`/api/notifications/${notificationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async markAllNotificationsAsRead(workspaceId?: string): Promise<{ message: string; modifiedCount: number }> {
+    return this.request('/api/notifications/read-all', {
+      method: 'PATCH',
+      body: JSON.stringify({ workspaceId }),
+    });
+  }
+
+  /* ---------- Activity Feed ---------- */
+  async getWorkspaceActivity(
+    workspaceId: string,
+    limit: number = 30,
+    skip: number = 0
+  ): Promise<{ activities: unknown[]; total: number }> {
+    return this.request(
+      `/api/activities/workspace/${workspaceId}?limit=${limit}&skip=${skip}`
+    );
+  }
+
+  async getNoteActivity(
+    noteId: string,
+    limit: number = 20,
+    skip: number = 0
+  ): Promise<{ activities: unknown[]; total: number }> {
+    return this.request(
+      `/api/activities/note/${noteId}?limit=${limit}&skip=${skip}`
+    );
   }
 }
 
