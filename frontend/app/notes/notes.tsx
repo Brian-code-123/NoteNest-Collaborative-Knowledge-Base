@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
 import { SkeletonList } from "@/components/Skeleton";
 import { usePermissions } from "@/hooks/usePermissions";
+import { FileX, Search as SearchIcon } from "lucide-react";
 
 const STORAGE_KEY = "notenest-notes";
 const DRAFT_KEY = "notenest-note-draft";
@@ -339,8 +340,24 @@ export default function NotesPage() {
                 <SkeletonList count={4} />
               ) : sortedNotes.length === 0 ? (
                 <EmptyState
-                  title="No results found"
-                  description="Try adjusting your search keywords."
+                  icon={searchQuery ? SearchIcon : FileX}
+                  title={searchQuery ? "No matching notes" : "No notes yet"}
+                  description={
+                    searchQuery
+                      ? `We couldn't find any notes matching "${searchQuery}".`
+                      : "Start your knowledge base by creating your first note."
+                  }
+                  action={
+                    !searchQuery && canCreateNote ? (
+                      <button
+                        onClick={handleCreateNote}
+                        className="px-4 py-2 rounded-lg bg-black text-white font-medium hover:bg-stone-800 transition-colors"
+                      >
+                        Create your first note
+                      </button>
+                    ) : undefined
+                  }
+                  size="large"
                 />
               ) : (
                 <ul className="space-y-3">
