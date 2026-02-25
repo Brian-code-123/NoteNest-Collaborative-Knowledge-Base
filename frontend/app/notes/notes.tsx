@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -10,8 +10,6 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { FileX, Search as SearchIcon } from "lucide-react";
 
 const STORAGE_KEY = "notenest-notes";
-const DRAFT_KEY = "notenest-note-draft";
-const TITLE_MAX_LENGTH = 200;
 const PINNED_KEY = "notenest-pinned-notes";
 
 interface Note {
@@ -59,17 +57,11 @@ export default function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pinnedNoteIds, setPinnedNoteIds] = useState<number[]>([]);
-  const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] =
     useState<"newest" | "oldest" | "az">("newest");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createTitle, setCreateTitle] = useState("");
-  const [createContent, setCreateContent] = useState("");
-  const [createTitleError, setCreateTitleError] = useState("");
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ---------- Initial load ---------- */
   useEffect(() => {
@@ -85,31 +77,14 @@ export default function NotesPage() {
     setIsLoading(false);
   }, []);
 
-  /* ---------- Global Shortcut (Ctrl+K) ---------- */
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        const searchInput = document.getElementById("search-input");
-        searchInput?.focus();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  /* ---------- Sync search ---------- */
+  /* ---------- Sync search from URL ---------- */
   useEffect(() => {
     setSearchQuery(search);
   }, [search]);
 
-  /* ---------- Persist notes ---------- */
+  /* ---------- Persist ---------- */
   useEffect(() => {
-    if (!isLoading) {
-      saveNotesToStorage(notes);
-      setLastSaved(Date.now());
-    }
+    if (!isLoading) saveNotesToStorage(notes);
   }, [notes, isLoading]);
 
   useEffect(() => {
@@ -143,10 +118,6 @@ export default function NotesPage() {
   /* ---------- Create ---------- */
   const handleCreateNote = () => {
     if (!canCreateNote) return;
-    setEditingNoteId(null);
-    setCreateTitle("");
-    setCreateContent("");
-    setCreateTitleError("");
     setShowCreateModal(true);
   };
 
@@ -161,21 +132,14 @@ export default function NotesPage() {
           title="Notes"
           showSearch
           action={
-            <div className="flex items-center gap-4">
-              {lastSaved && (
-                <span className="text-xs text-stone-500 italic">
-                  Last saved: {new Date(lastSaved).toLocaleTimeString()}
-                </span>
-              )}
-              {canCreateNote && (
-                <button
-                  onClick={handleCreateNote}
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold"
-                >
-                  + Create Note
-                </button>
-              )}
-            </div>
+            canCreateNote && (
+              <button
+                onClick={handleCreateNote}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold"
+              >
+                + Create Note
+              </button>
+            )
           }
         />
 
@@ -195,68 +159,26 @@ export default function NotesPage() {
                 }
                 description={
                   pinnedOnly
-                    ? "You haven't pinned any notes yet."
+                    ? "You haven’t pinned any notes yet."
                     : searchQuery
                     ? `We couldn't find any notes matching "${searchQuery}".`
-                    : "Start your knowledge base by creating your first note."
+                    : "Start by creating your first note."
                 }
-                action={
-                  !searchQuery && !pinnedOnly && canCreateNote ? (
-                    <button
-                      onClick={handleCreateNote}
-                      className="px-4 py-2 rounded-lg bg-black text-white font-medium hover:bg-stone-800 transition-colors"
-                    >
-                      Create your first note
-                    </button>
-                  ) : undefined
-                }
-                size="large"
               />
             ) : (
               <ul className="space-y-3">
                 {sortedNotes.map((note) => (
                   <li
                     key={note.id}
-                    className="border rounded-xl p-4 bg-white flex justify-between"
+                    className="border rounded-xl p-4 bg-white"
                   >
-                    <div>
-                      <h4 className="font-semibold">{note.title}</h4>
-                      <p className="text-xs text-gray-500">
-                        {formatRelativeTime(note.createdAt)}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {note.content || "No content"}
-                      </p>
-                    </div>
-
-                    {!isViewer && (
-                      <div className="flex gap-2">
-                        <button
-                          title={pinnedNoteIds.includes(note.id) ? "Unpin note" : "Pin note"}
-                          onClick={() =>
-                            setPinnedNoteIds((prev) =>
-                              prev.includes(note.id)
-                                ? prev.filter((id) => id !== note.id)
-                                : [...prev, note.id]
-                            )
-                          }
-                        >
-                          {pinnedNoteIds.includes(note.id) ? "📌" : "📍"}
-                        </button>
-                        <button
-                          title="Edit note"
-                          className="text-blue-600"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          title="Delete note"
-                          className="text-red-600"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    )}
+                    <h4 className="font-semibold">{note.title}</h4>
+                    <p className="text-xs text-gray-500">
+                      {formatRelativeTime(note.createdAt)}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {note.content || "No content"}
+                    </p>
                   </li>
                 ))}
               </ul>
