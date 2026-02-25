@@ -22,6 +22,13 @@ function HeaderInner({
 }: HeaderProps) {
   const { isAuthenticated, logout } = useUserRole();
 
+  const handleLogoutClick = () => {
+    const confirmed = window.confirm("Are you sure you want to log out?");
+    if (!confirmed) return;
+
+    logout();
+  };
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const search = searchParams.get("search") || "";
@@ -45,10 +52,10 @@ function HeaderInner({
         Skip to main content
       </a>
 
-<header
-  className="sticky top-0 z-40 flex items-center gap-4 border-b px-6 py-4 bg-[#F3F0E6]/90 backdrop-blur-sm border-stone-200/50"
-  role="banner"
->
+      <header
+        className="sticky top-0 z-40 flex items-center gap-4 border-b px-6 py-4 bg-[#F3F0E6]/90 backdrop-blur-sm border-stone-200/50"
+        role="banner"
+      >
         <WorkspaceSelector />
 
         <h1
@@ -96,7 +103,7 @@ function HeaderInner({
             <>
               <NotificationCenter workspaceId={workspaceId} />
               <Button
-                onClick={logout}
+                onClick={handleLogoutClick}
                 variant="secondary"
                 size="sm"
                 aria-label="Logout from your account"

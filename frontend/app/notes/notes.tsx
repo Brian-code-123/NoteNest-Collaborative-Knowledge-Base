@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -10,8 +10,6 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { FileX, Search as SearchIcon } from "lucide-react";
 
 const STORAGE_KEY = "notenest-notes";
-const DRAFT_KEY = "notenest-note-draft";
-const TITLE_MAX_LENGTH = 200;
 const PINNED_KEY = "notenest-pinned-notes";
 
 interface Note {
@@ -64,11 +62,6 @@ export default function NotesPage() {
     useState<"newest" | "oldest" | "az">("newest");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createTitle, setCreateTitle] = useState("");
-  const [createContent, setCreateContent] = useState("");
-  const [createTitleError, setCreateTitleError] = useState("");
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ---------- Initial load ---------- */
   useEffect(() => {
@@ -84,7 +77,7 @@ export default function NotesPage() {
     setIsLoading(false);
   }, []);
 
-  /* ---------- Sync search ---------- */
+  /* ---------- Sync search from URL ---------- */
   useEffect(() => {
     setSearchQuery(search);
   }, [search]);
@@ -113,6 +106,7 @@ export default function NotesPage() {
   const sortedNotes = [...filteredNotes].sort((a, b) => {
     const aPinned = pinnedNoteIds.includes(a.id);
     const bPinned = pinnedNoteIds.includes(b.id);
+
     if (aPinned && !bPinned) return -1;
     if (!aPinned && bPinned) return 1;
 
@@ -124,10 +118,6 @@ export default function NotesPage() {
   /* ---------- Create ---------- */
   const handleCreateNote = () => {
     if (!canCreateNote) return;
-    setEditingNoteId(null);
-    setCreateTitle("");
-    setCreateContent("");
-    setCreateTitleError("");
     setShowCreateModal(true);
   };
 
